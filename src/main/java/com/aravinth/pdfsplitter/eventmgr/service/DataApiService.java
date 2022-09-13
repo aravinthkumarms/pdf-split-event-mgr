@@ -10,20 +10,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
-public class PdfSplitService {
+public class DataApiService {
 
-    private  ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
-    private  PdfSplitService (ObjectMapper objectMapper){
+    private DataApiService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
+
     @Value("${DATA_API_HOST}")
     public String dataApiHost;
 
@@ -33,23 +33,24 @@ public class PdfSplitService {
     @Autowired
     public HTTPAgent httpAgent;
 
-    public BlobResponse getBlobResponse(String fileName){
-        log.info("Calling DATA API {} for BlobResponse",dataApiHost);
-        String url =  dataApiHost + "blob/response/v2/?fileName="+fileName;
+    public BlobResponse getBlobResponse(String fileName) {
+        log.info("Calling DATA API {} for BlobResponse", dataApiHost);
+        String url = dataApiHost + "blob/response/v2/?fileName=" + fileName;
         log.info(url);
         ResponseEntity<BlobResponse> response;
-        response = httpAgent.get(url, BlobResponse.class,fileName);
+        response = httpAgent.get(url, BlobResponse.class, fileName);
         return response.getBody();
     }
 
-    public ConnectionResponse getConnection(){
-        log.info("Calling API {}",pdfSplitHost);
-        String url =  pdfSplitHost+"try/connect";
+    public ConnectionResponse getConnection() {
+        log.info("Calling API {}", pdfSplitHost);
+        String url = pdfSplitHost + "try/connect";
         log.info(url);
         ResponseEntity<ConnectionResponse> response;
         response = httpAgent.get(url, ConnectionResponse.class);
         return response.getBody();
     }
+
     @SneakyThrows
     public PdfSplitWorkflowResponse createWorkflow(PdfSplitWorkflowRequest pdfSplitWorkflowRequest){
         log.info("Calling DATA API {}",dataApiHost);
@@ -59,8 +60,4 @@ public class PdfSplitService {
         response = httpAgent.post(url,pdfSplitWorkflowRequest,PdfSplitWorkflowResponse.class);
         return response.getBody();
     }
-
-
-
-
 }

@@ -16,12 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.retry.annotation.EnableRetry;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 
-import java.io.IOException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +32,7 @@ public class EventManagerService  {
         this.objectMapper = objectMapper;
     }
     @Autowired
-    private PdfSplitService pdfSplitService;
+    private DataApiService dataApiService;
 
     @Value("${PDF_SPLIT_HOST}")
     public String pdfSplitHost;
@@ -49,23 +47,25 @@ public class EventManagerService  {
     public WorkflowResponseTemplate workflowResponseTemplate;
     @SneakyThrows
     public String getFileId(String fileName){
-        BlobResponse blobResponse = pdfSplitService.getBlobResponse(fileName);
+        BlobResponse blobResponse = dataApiService.getBlobResponse(fileName);
         log.info("BlobResponse for the filename {} - {}",fileName,objectMapper.writeValueAsString(blobResponse));
         String fileId = blobResponse.getFileId();
         return fileId;
     }
-
+    @SneakyThrows
     public ResponseEntity<PdfSplitWorkflowResponse> eventMgrStarted(String fileName){
+
         String fileId = getFileId(fileName);
         PdfSplitWorkflowRequest startedRequest = workflowResponseTemplate.startedWorkflowRequest(fileId,Constants.eventMgr);
-        PdfSplitWorkflowResponse pdfSplitWorkflowStartedResponse = pdfSplitService.createWorkflow(startedRequest);
+        PdfSplitWorkflowResponse pdfSplitWorkflowStartedResponse = dataApiService.createWorkflow(startedRequest);
         log.info("Event Manager started");
         return new ResponseEntity(pdfSplitWorkflowStartedResponse,HttpStatus.CREATED);
     }
+    @SneakyThrows
     public ResponseEntity<PdfSplitWorkflowResponse> eventMgrCompleted(String fileName){
         String fileId = getFileId(fileName);
         PdfSplitWorkflowRequest completedRequest = workflowResponseTemplate.completedWorkflowRequest(fileId,Constants.eventMgr);
-        PdfSplitWorkflowResponse pdfSplitWorkflowComlpletedResponse = pdfSplitService.createWorkflow(completedRequest);
+        PdfSplitWorkflowResponse pdfSplitWorkflowComlpletedResponse = dataApiService.createWorkflow(completedRequest);
         log.info("Event Manager Completed");
         return new ResponseEntity(pdfSplitWorkflowComlpletedResponse,HttpStatus.CREATED);
     }
@@ -78,23 +78,23 @@ public class EventManagerService  {
             log.info("Calling API {}",url);
             log.info("Splitting PDF Job Starts");
             PdfSplitWorkflowRequest startedRequest = workflowResponseTemplate.startedWorkflowRequest(fileId,Constants.split);
-            PdfSplitWorkflowResponse pdfSplitWorkflowStartedResponse = pdfSplitService.createWorkflow(startedRequest);
+            PdfSplitWorkflowResponse pdfSplitWorkflowStartedResponse = dataApiService.createWorkflow(startedRequest);
             log.info("Created Workflow Detail for the fileId {} with request {}",fileId,objectMapper.writeValueAsString(startedRequest));
             ResponseEntity<ConnectionResponse> response;
             response= httpAgent.get(url, ConnectionResponse.class);
             log.info("Splitting App Response {}",objectMapper.writeValueAsString(response.getBody()));
             log.info("Splitting PDF Job Ends");
             PdfSplitWorkflowRequest completedRequest = workflowResponseTemplate.completedWorkflowRequest(fileId,Constants.split);
-            PdfSplitWorkflowResponse pdfSplitWorkflowCompletedResponse= pdfSplitService.createWorkflow(completedRequest);
+            PdfSplitWorkflowResponse pdfSplitWorkflowCompletedResponse= dataApiService.createWorkflow(completedRequest);
             log.info("Created Workflow Detail for the fileId {} with request {}",fileId,objectMapper.writeValueAsString(completedRequest));
             List<PdfSplitWorkflowResponse> responseList = workflowResponseTemplate.makeList(pdfSplitWorkflowStartedResponse,pdfSplitWorkflowCompletedResponse);
             return true;
         }
         catch (Exception e){
             e.printStackTrace();
-            log.error("{}",e);
+            log.error("{}", e.getMessage());
             PdfSplitWorkflowRequest exceptionRequest = workflowResponseTemplate.exceptionWorkflowRequest(fileId,Constants.split, String.valueOf(e));
-            PdfSplitWorkflowResponse pdfSplitWorkflowExceptionResponse= pdfSplitService.createWorkflow(exceptionRequest);
+            PdfSplitWorkflowResponse pdfSplitWorkflowExceptionResponse= dataApiService.createWorkflow(exceptionRequest);
             log.info("Created Workflow Detail for the fileId {} with request {}",fileId,objectMapper.writeValueAsString(exceptionRequest));
             List<PdfSplitWorkflowResponse> responseList = new ArrayList<>();
             responseList.add(pdfSplitWorkflowExceptionResponse);
@@ -112,21 +112,21 @@ public class EventManagerService  {
             log.info("Calling API {}", url);
             log.info("Uploading Splitted Images to GCS Starts");
             PdfSplitWorkflowRequest startedRequest = workflowResponseTemplate.startedWorkflowRequest(fileId, Constants.delivery);
-            PdfSplitWorkflowResponse pdfSplitWorkflowStartedResponse = pdfSplitService.createWorkflow(startedRequest);
+            PdfSplitWorkflowResponse pdfSplitWorkflowStartedResponse = dataApiService.createWorkflow(startedRequest);
             log.info("Created Workflow Detail for the fileId {} with request {}", fileId, objectMapper.writeValueAsString(startedRequest));
             ResponseEntity<ConnectionResponse> response;
             response = httpAgent.get(url, ConnectionResponse.class);
             log.info("Splitting App Response {}", objectMapper.writeValueAsString(response.getBody()));
             log.info("Splitting PDF Job Ends");
             PdfSplitWorkflowRequest completedRequest = workflowResponseTemplate.completedWorkflowRequest(fileId, Constants.delivery);
-            PdfSplitWorkflowResponse pdfSplitWorkflowCompletedResponse = pdfSplitService.createWorkflow(completedRequest);
+            dataApiService.createWorkflow(completedRequest);
             log.info("Created Workflow Detail for the fileId {} with request {}", fileId, objectMapper.writeValueAsString(completedRequest));
             return true;
         } catch (Exception e) {
             e.printStackTrace();
-            log.error("{}", e);
+            log.error("{}", e.getMessage());
             PdfSplitWorkflowRequest exceptionRequest = workflowResponseTemplate.exceptionWorkflowRequest(fileId, Constants.delivery, String.valueOf(e));
-            PdfSplitWorkflowResponse pdfSplitWorkflowExceptionResponse= pdfSplitService.createWorkflow(exceptionRequest);
+            PdfSplitWorkflowResponse pdfSplitWorkflowExceptionResponse= dataApiService.createWorkflow(exceptionRequest);
             log.info("Created Workflow Detail for the fileId {} with request {}",fileId,objectMapper.writeValueAsString(exceptionRequest));
             List<PdfSplitWorkflowResponse> responseList = new ArrayList<>();
             responseList.add(pdfSplitWorkflowExceptionResponse);

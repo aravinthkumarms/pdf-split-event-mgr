@@ -3,10 +3,8 @@ package com.aravinth.pdfsplitter.eventmgr.controller;
 
 import com.aravinth.pdfsplitter.eventmgr.response.BlobResponse;
 import com.aravinth.pdfsplitter.eventmgr.response.ConnectionResponse;
-import com.aravinth.pdfsplitter.eventmgr.response.PdfSplitWorkflowResponse;
 import com.aravinth.pdfsplitter.eventmgr.service.EventManagerService;
-import com.aravinth.pdfsplitter.eventmgr.service.PdfSplitService;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.aravinth.pdfsplitter.eventmgr.service.DataApiService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,7 +14,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -24,7 +21,7 @@ import java.util.List;
 public class EventManagerController {
 
     @Autowired
-    private PdfSplitService pdfSplitService;
+    private DataApiService dataApiService;
 
     @Autowired
     private EventManagerService eventManagerService;
@@ -32,13 +29,13 @@ public class EventManagerController {
     @GetMapping("blob/response/{fileName}")
     public BlobResponse getBlobResponse(@PathVariable String fileName){
         log.info("Calling PdfSplitService.getBlobResponse for API Call");
-        BlobResponse response = pdfSplitService.getBlobResponse(fileName);
+        BlobResponse response = dataApiService.getBlobResponse(fileName);
         return response;
     }
 
     @GetMapping("pdfsplit/connect")
     public ConnectionResponse connectionResponse(){
-        ConnectionResponse response = pdfSplitService.getConnection();
+        ConnectionResponse response = dataApiService.getConnection();
         return response;
     }
 
